@@ -1,13 +1,14 @@
 package tu.project.babylon.services;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tu.project.babylon.errors.ExecutionNotFoundException;
 import tu.project.babylon.models.ExecutionResult;
-import tu.project.babylon.models.ExecutionStatus;
 import tu.project.babylon.repositories.ExecutionResultRepository;
 
 import java.util.UUID;
+
+import static java.lang.String.format;
 
 @Service
 public class EnumaService {
@@ -29,6 +30,6 @@ public class EnumaService {
     }
 
     public ExecutionResult getResult(UUID id) {
-        return repository.findById(id).orElse(null);
+        return repository.findById(id).orElseThrow(() -> new ExecutionNotFoundException(format("Execution with id '%s' is not found", id)));
     }
 }

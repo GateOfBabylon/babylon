@@ -19,4 +19,14 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(ExecutionNotFoundException.class)
+    public ResponseEntity<HttpErrorResponse> handleExecutionNotFoundException(ExecutionNotFoundException ex) {
+        HttpErrorResponse errorResponse = HttpErrorResponse.builder()
+                .message(ex.getMessage())
+                .now()
+                .status(HttpStatus.NOT_FOUND)
+                .build();
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    }
+
 }

@@ -3,6 +3,7 @@ package tu.project.babylon.errors;
 import lombok.Getter;
 
 import java.io.Serial;
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -11,6 +12,11 @@ public class ExecutorFailedException extends RuntimeException {
     @Serial
     private static final long serialVersionUID = 1L;
     private final List<String> executorOutput;
+
+    public ExecutorFailedException(String message) {
+        super(message);
+        this.executorOutput = new ArrayList<>();
+    }
 
     public ExecutorFailedException(String message, String executorOutput) {
         super(message);

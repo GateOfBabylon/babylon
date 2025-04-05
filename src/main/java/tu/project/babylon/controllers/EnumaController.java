@@ -18,14 +18,17 @@ import java.util.UUID;
 public class EnumaController {
 
     private final EnumaService enumaService;
+    private final ValidationService validationService;
 
-    public EnumaController(EnumaService enumaService) {
+    public EnumaController(EnumaService enumaService, ValidationService validationService) {
         this.enumaService = enumaService;
+        this.validationService = validationService;
     }
 
     @PostMapping("/run")
     @Transactional
     public ResponseEntity<Activation> runEnumaScript(@RequestBody ExecutionRequest request) {
+        validationService.validateRequest(request);
         log.info("Received async request to run Enuma script: {}", request);
         UUID id = enumaService.executeAsync(request.getScriptPath());
         return ResponseEntity.accepted().body(
@@ -38,9 +41,6 @@ public class EnumaController {
     @GetMapping("/status/{id}")
     public ResponseEntity<ExecutionResult> getResult(@PathVariable UUID id) {
         ExecutionResult result = enumaService.getResult(id);
-        if (result == null) {
-            return ResponseEntity.notFound().build();
-        }
         return ResponseEntity.ok(result);
     }
 }

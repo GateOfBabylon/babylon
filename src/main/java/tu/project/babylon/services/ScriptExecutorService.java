@@ -1,25 +1,30 @@
 package tu.project.babylon.services;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import tu.project.babylon.errors.ExecutionNotFoundException;
 import tu.project.babylon.models.ExecutionResult;
 import tu.project.babylon.models.ExecutionStatus;
 import tu.project.babylon.repositories.ExecutionResultRepository;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.UUID;
-import java.util.stream.Collectors;
+
+import static java.lang.String.format;
 
 @Slf4j
 @Service
 public class ScriptExecutorService {
 
+    private final ScriptProcessFactory processFactory;
     private final ExecutionResultRepository repository;
 
-    public ScriptExecutorService(ExecutionResultRepository repository) {
+    public ScriptExecutorService(ScriptProcessFactory processFactory, ExecutionResultRepository repository) {
+        this.processFactory = processFactory;
         this.repository = repository;
     }
 
@@ -28,33 +33,44 @@ public class ScriptExecutorService {
         log.info("Async execution started for ID: {}", id);
 
         try {
-            ExecutionResult running = repository.findById(id).orElseThrow();
+            ExecutionResult running = getExecutionResult(id);
             running.setStatus(ExecutionStatus.RUNNING);
             repository.save(running);
 
-            ProcessBuilder builder = new ProcessBuilder("enumago", scriptPath);
-            builder.redirectErrorStream(true);
-            Process process = builder.start();
-
-            String output;
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                output = reader.lines().collect(Collectors.joining("\n"));
+            Process process = processFactory.create(scriptPath);
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    running.addToOutput(line);
+                    repository.save(running);
+                }
+                int exitCode = process.waitFor();
+                ExecutionStatus status = (exitCode == 0) ? ExecutionStatus.SUCCESS : ExecutionStatus.ERROR;
+                running.setStatus(status);
+                repository.save(running);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                updateExecutorWithError(id, e);
             }
-
-            int exitCode = process.waitFor();
-            ExecutionStatus status = (exitCode == 0) ? ExecutionStatus.SUCCESS : ExecutionStatus.ERROR;
-
-            running.setStatus(status);
-            running.setOutput(output);
-            repository.save(running);
-
-        } catch (Exception e) {
-            log.error("Execution failed for ID: {}", id, e);
-            ExecutionResult failed = repository.findById(id).orElseThrow();
-            failed.setStatus(ExecutionStatus.ERROR);
-            failed.setOutput("Error: " + e.getMessage());
-            repository.save(failed);
+        } catch (IOException e) {
+            updateExecutorWithError(id, e);
         }
     }
+
+    private void updateExecutorWithError(UUID id, Exception e) {
+        String message = format("Execution failed for ID: %s", id);
+        log.error(message, e);
+        ExecutionResult failed = getExecutionResult(id);
+        failed.setStatus(ExecutionStatus.ERROR);
+        failed.addToOutput(format("ERROR: %s", e.getMessage()));
+        repository.save(failed);
+    }
+
+    private ExecutionResult getExecutionResult(UUID id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new ExecutionNotFoundException("ExecutionResult not found for ID: " + id));
+    }
+
+
 }
 

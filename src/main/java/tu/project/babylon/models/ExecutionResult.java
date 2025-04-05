@@ -1,14 +1,12 @@
 package tu.project.babylon.models;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.JsonSerializable;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -20,11 +18,15 @@ public class ExecutionResult {
     private UUID id;
     private String scriptPath;
     private ExecutionStatus status;
-    private String output;
+    private List<String> output = new ArrayList<>();
 
     public ExecutionResult(String scriptPath) {
         this.id = UUID.randomUUID();
         this.scriptPath = scriptPath;
         this.status = ExecutionStatus.PENDING;
+    }
+
+    public void addToOutput(String log) {
+        output.add(log);
     }
 }
