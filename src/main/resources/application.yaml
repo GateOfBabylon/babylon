@@ -4,5 +4,6 @@ spring:
   data:
     mongodb:
       uri: mongodb://localhost:27017/gateofbabylon
+      auto-index-creation: true
 server:
   port: 1337
