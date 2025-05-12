@@ -16,6 +16,7 @@ public class ExecutionResult {
 
     @Id
     private UUID id;
+    private UUID executorId;
     private String scriptPath;
     private ExecutionStatus status;
     private List<String> output = new ArrayList<>();

@@ -1,9 +1,5 @@
 package tu.project.babylon.controllers;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,15 +12,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import tu.project.babylon.dtos.ExecutionRequestConverter;
 import tu.project.babylon.dtos.ExecutionRequestInput;
-import tu.project.babylon.errors.ExecutorRequestException;
 import tu.project.babylon.models.ExecutionRequest;
 import tu.project.babylon.models.Activation;
 import tu.project.babylon.models.ExecutionResult;
 import tu.project.babylon.services.EnumaService;
 
-
-import java.io.IOException;
-import java.util.Map;
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -70,6 +63,18 @@ public class EnumaController {
     public ResponseEntity<ExecutionResult> getResult(@PathVariable UUID id) {
         ExecutionResult result = enumaService.getResult(id);
         return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/status/list/{executorName}")
+    public ResponseEntity<List<ExecutionResult>> getResults(@PathVariable String executorName) {
+        List<ExecutionResult> result = enumaService.getResultsForExecutor(executorName);
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/executors")
+    public ResponseEntity<List<ExecutionRequest>> getAllExecutors() {
+        List<ExecutionRequest> executors = enumaService.getAllExecutors();
+        return ResponseEntity.ok(executors);
     }
 
 }

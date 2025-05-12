@@ -12,7 +12,7 @@ import java.util.UUID;
 @Data
 @Document(collection = "execution_requests")
 @NoArgsConstructor
-public class ExecutionRequest {
+public class  ExecutionRequest {
 
     @Id
     private UUID id = UUID.randomUUID();

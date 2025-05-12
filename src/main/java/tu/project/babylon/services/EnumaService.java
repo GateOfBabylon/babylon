@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.List;
 import java.util.UUID;
 
 import static java.lang.String.format;
@@ -45,7 +46,8 @@ public class EnumaService {
             Files.writeString(tempFile, executorObj.toPrettyString(), StandardOpenOption.TRUNCATE_EXISTING);
 
             ExecutionResult result = new ExecutionResult(tempFile.toString());
-            result.setId(request.getId());
+            result.setId(UUID.randomUUID());
+            result.setExecutorId(request.getId());
             resultRepository.save(result);
 
             executor.run(result.getId(), tempFile.toString());
@@ -61,6 +63,15 @@ public class EnumaService {
         return resultRepository.findById(id).orElseThrow(() -> new ExecutionNotFoundException(format("Execution with id '%s' is not found", id)));
     }
 
+    public List<ExecutionResult> getResultsForExecutor(String executorName) {
+        ExecutionRequest request = requestRepository.findByName(executorName)
+                .orElseThrow(() -> new ExecutionNotFoundException(
+                        String.format("Executor with name '%s' not found", executorName)
+                ));
+
+        return resultRepository.findAllByExecutorId(request.getId());
+    }
+
     public void saveExecutor(ExecutionRequest request) {
         requestRepository.save(request);
     }
@@ -68,5 +79,9 @@ public class EnumaService {
     public ExecutionRequest getExecutionRequest(String name) {
         return requestRepository.findByName(name)
                 .orElseThrow(() -> new ExecutionNotFoundException(format("Execution request with name '%s' is not found", name)));
+    }
+
+    public List<ExecutionRequest> getAllExecutors() {
+        return requestRepository.findAll();
     }
 }
