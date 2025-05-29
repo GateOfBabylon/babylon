@@ -5,17 +5,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import tu.project.babylon.models.ExecutionRequest;
+import tu.project.babylon.models.Execution;
 import tu.project.babylon.errors.ExecutionNotFoundException;
 import tu.project.babylon.errors.ExecutorRequestException;
 import tu.project.babylon.models.ExecutionResult;
-import tu.project.babylon.repositories.ExecutionRequestRepository;
+import tu.project.babylon.repositories.ExecutionRepository;
 import tu.project.babylon.repositories.ExecutionResultRepository;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.UUID;
@@ -27,18 +26,19 @@ import static java.lang.String.format;
 public class EnumaService {
 
     private final ExecutionResultRepository resultRepository;
-    private final ExecutionRequestRepository requestRepository;
+    private final ExecutionRepository executionRepository;
     private final ScriptExecutorService executor;
 
-    public EnumaService(ExecutionResultRepository resultRepository, ExecutionRequestRepository requestRepository, ScriptExecutorService executor) {
+    public EnumaService(ExecutionResultRepository resultRepository, ExecutionRepository requestRepository,
+                        ScriptExecutorService executor) {
         this.resultRepository = resultRepository;
-        this.requestRepository = requestRepository;
+        this.executionRepository = requestRepository;
         this.executor = executor;
     }
 
     @Transactional
-    public UUID executeAsync(ExecutionRequest request) {
-        requestRepository.save(request);
+    public UUID executeAsync(Execution request) {
+        executionRepository.save(request);
 
         try {
             Path tempFile = Files.createTempFile(String.format("executor-%s-", request.getName()), ".ea");
@@ -58,30 +58,35 @@ public class EnumaService {
         }
     }
 
-
     public ExecutionResult getResult(UUID id) {
-        return resultRepository.findById(id).orElseThrow(() -> new ExecutionNotFoundException(format("Execution with id '%s' is not found", id)));
+        return resultRepository.findById(id)
+                .orElseThrow(() -> new ExecutionNotFoundException(format("Execution with id '%s' is not found", id)));
     }
 
     public List<ExecutionResult> getResultsForExecutor(String executorName) {
-        ExecutionRequest request = requestRepository.findByName(executorName)
+        Execution request = executionRepository.findByName(executorName)
                 .orElseThrow(() -> new ExecutionNotFoundException(
-                        String.format("Executor with name '%s' not found", executorName)
-                ));
+                        String.format("Executor with name '%s' not found", executorName)));
 
         return resultRepository.findAllByExecutorId(request.getId());
     }
 
-    public void saveExecutor(ExecutionRequest request) {
-        requestRepository.save(request);
+    public void saveExecutor(Execution request) {
+        executionRepository.save(request);
     }
 
-    public ExecutionRequest getExecutionRequest(String name) {
-        return requestRepository.findByName(name)
-                .orElseThrow(() -> new ExecutionNotFoundException(format("Execution request with name '%s' is not found", name)));
+    public Execution getExecutionRequest(String name) {
+        return executionRepository.findByName(name)
+                .orElseThrow(() -> new ExecutionNotFoundException(
+                        format("Execution request with name '%s' is not found", name)));
     }
 
-    public List<ExecutionRequest> getAllExecutors() {
-        return requestRepository.findAll();
+    public List<Execution> getAllExecutors() {
+        return executionRepository.findAll();
     }
+
+    public void deleteExecutor(UUID id) {
+        executionRepository.deleteById(id);
+    }
+
 }

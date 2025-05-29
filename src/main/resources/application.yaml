@@ -7,3 +7,6 @@ spring:
       auto-index-creation: true
 server:
   port: 1337
+self:
+  executor:
+    command: enumago

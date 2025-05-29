@@ -12,6 +12,9 @@ import tu.project.babylon.repositories.ExecutionResultRepository;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static java.lang.String.format;
@@ -38,22 +41,36 @@ public class ScriptExecutorService {
             repository.save(running);
 
             Process process = processFactory.create(scriptPath);
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));) {
+
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                    BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     running.addToOutput(line);
                     repository.save(running);
                 }
+
+                while ((line = errorReader.readLine()) != null) {
+                    running.addToOutput(line);
+                    repository.save(running);
+                }
+
                 int exitCode = process.waitFor();
                 ExecutionStatus status = (exitCode == 0) ? ExecutionStatus.SUCCESS : ExecutionStatus.ERROR;
                 running.setStatus(status);
-                repository.save(running);
             } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+                Thread.currentThread()
+                        .interrupt();
                 updateExecutorWithError(id, e);
             }
+            repository.save(running);
+
         } catch (IOException e) {
             updateExecutorWithError(id, e);
+        } finally {
+            ExecutionResult result = getExecutionResult(id);
+            result.setTimestamp(LocalDateTime.now());
+            repository.save(result);
         }
     }
 
@@ -63,6 +80,7 @@ public class ScriptExecutorService {
         ExecutionResult failed = getExecutionResult(id);
         failed.setStatus(ExecutionStatus.ERROR);
         failed.addToOutput(format("ERROR: %s", e.getMessage()));
+        failed.setTimestamp(LocalDateTime.now());
         repository.save(failed);
     }
 
@@ -70,7 +88,6 @@ public class ScriptExecutorService {
         return repository.findById(id)
                 .orElseThrow(() -> new ExecutionNotFoundException("ExecutionResult not found for ID: " + id));
     }
-
 
 }
 

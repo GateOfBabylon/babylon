@@ -5,13 +5,14 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 @Data
 @NoArgsConstructor
-@Document(collection = "executions")
+@Document(collection = "executions_result")
 public class ExecutionResult {
 
     @Id
@@ -19,6 +20,7 @@ public class ExecutionResult {
     private UUID executorId;
     private String scriptPath;
     private ExecutionStatus status;
+    private LocalDateTime timestamp;
     private List<String> output = new ArrayList<>();
 
     public ExecutionResult(String scriptPath) {
